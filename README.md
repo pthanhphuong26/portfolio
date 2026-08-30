@@ -6,13 +6,14 @@ A dependency-free static portfolio built with semantic HTML, CSS, and JavaScript
 
 ```text
 .
-├── .github/workflows/deploy.yml  # CI and GitHub Pages deployment
+├── .github/workflows/deploy.yml  # CI and cPanel deployment
 ├── assets/
 │   ├── css/styles.css            # Visual design and responsive styles
 │   ├── images/                   # Project and brand images
 │   └── js/main.js                # Navigation and reveal behavior
 ├── scripts/
 │   ├── build.mjs                 # Creates the deployable dist/ directory
+│   ├── deploy-cpanel.sh          # Activates a versioned release over SSH
 │   ├── serve.mjs                 # Starts a local preview server
 │   └── validate.mjs              # Checks HTML structure and local assets
 ├── index.html                    # Page content and accessible markup
@@ -58,18 +59,58 @@ This checks the JavaScript syntax, creates `dist/`, and validates the generated
 site for missing assets, duplicate IDs, unsafe external links, missing image alt
 text, and accidental inline CSS or JavaScript.
 
-## CI/CD with GitHub Pages
+## CI/CD with cPanel
 
 The workflow in `.github/workflows/deploy.yml` validates every pull request and
-every push to `main`. A successful push to `main` builds `dist/` and deploys it
-to the `github-pages` environment.
+push to `main`. When cPanel deployment is enabled, a successful `main` build is
+packaged, uploaded over SSH, activated as `CPANEL_APP_ROOT/current`, and checked
+through the public production URL.
 
-For the first deployment:
+### cPanel setup
 
-1. Push this folder as the root of a GitHub repository using `main` as its default branch.
-2. Open **Settings → Pages** in the repository.
-3. Under **Build and deployment**, select **GitHub Actions** as the source.
-4. Run the workflow manually or push a commit to `main`.
+The cPanel account must support SSH access. Create or import a dedicated
+deployment public key in **Security → SSH Access → Manage SSH Keys**, then
+authorize it. Configure the portfolio domain's document root as:
 
-The workflow deploys to the repository's standard GitHub Pages URL. Configure a
-custom portfolio domain separately in the repository's Pages settings if needed.
+```text
+CPANEL_APP_ROOT/current
+```
+
+For example, if `CPANEL_APP_ROOT` is
+`/home/account/public_html/portfolio`, use
+`public_html/portfolio/current` as the domain document root. Keep this directory
+dedicated to the portfolio because deployments replace its `current` directory.
+
+### GitHub configuration
+
+Create a GitHub environment named `production`. Add these environment variables:
+
+| Variable | Example | Purpose |
+| --- | --- | --- |
+| `PRODUCTION_URL` | `https://portfolio.example.com` | Public HTTPS URL used by deployment verification |
+| `CPANEL_APP_ROOT` | `/home/account/public_html/portfolio` | Root containing versioned releases and `current` |
+| `CPANEL_SSH_PORT` | `22` | cPanel SSH port |
+
+Add these environment secrets:
+
+| Secret | Purpose |
+| --- | --- |
+| `CPANEL_HOST` | SSH hostname without a protocol |
+| `CPANEL_USER` | Restricted cPanel SSH username |
+| `CPANEL_SSH_PRIVATE_KEY` | Private half of the dedicated deployment key |
+| `CPANEL_KNOWN_HOSTS` | Verified SSH host-key entry for the server |
+
+Generate `CPANEL_KNOWN_HOSTS` from a trusted machine and compare the fingerprint
+with the hosting provider before saving it. Do not trust an unverified
+`ssh-keyscan` result inside the workflow.
+
+Finally, create the repository-level Actions variable
+`CPANEL_DEPLOY_ENABLED=true`. The deployment job remains safely disabled while
+this variable is missing or set to another value. Run the workflow manually or
+push to `main` after all variables and secrets are configured.
+
+### Releases and rollback
+
+Each deployment is retained under `CPANEL_APP_ROOT/releases/<commit-sha>`. The
+previous live directory remains at `CPANEL_APP_ROOT/.current-previous`, allowing
+an SSH administrator to restore it if a rollback is needed.
