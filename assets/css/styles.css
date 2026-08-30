@@ -188,6 +188,9 @@ body::before {
   border: none;
   font-family: inherit;
 }
+.btn-icon {
+  padding: 0.85rem;
+}
 .btn-primary {
   background: linear-gradient(135deg, var(--color-accent), #b8943f);
   color: var(--color-background);
