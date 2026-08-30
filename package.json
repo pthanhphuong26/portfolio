@@ -4,11 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "check": "node --check assets/js/main.js && node --check scripts/build.mjs && node --check scripts/serve.mjs && node --check scripts/validate.mjs && node scripts/build.mjs && node scripts/validate.mjs dist",
-    "dev": "node scripts/serve.mjs"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "node --check assets/js/main.js && node --check scripts/validate.mjs && node scripts/validate.mjs && vite build && node scripts/validate.mjs dist"
   },
   "engines": {
     "node": ">=24"
+  },
+  "devDependencies": {
+    "vite": "^8.2.2"
   }
 }
