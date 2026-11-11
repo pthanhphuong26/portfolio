@@ -69,3 +69,46 @@ This checks JavaScript syntax, validates the source site, runs a Vite production
 build, and validates the generated site for missing assets, duplicate IDs,
 unsafe external links, missing image alt text, and accidental inline CSS or
 JavaScript.
+
+## Deploy to Vercel
+
+Deployment settings live in `vercel.json`. Vercel installs with `npm ci`, builds
+with `npm run check` (so a failed validation blocks the deploy), and serves
+`dist/`. Hashed files under `/assets/` are cached for a year; every response
+also gets basic security headers. Vercel uses Node.js 24 because of the
+`engines` field in `package.json`.
+
+Deploys run from GitHub Actions (`.github/workflows/deploy.yml`). Each push to
+`main` deploys to production; every pull request gets a preview URL, shown in
+the workflow run summary. Vercel's own Git auto-deploys are turned off in
+`vercel.json` (`git.deploymentEnabled: false`) so nothing deploys twice.
+
+### One-time setup
+
+1. Create a Vercel project and link this folder to it:
+
+   ```bash
+   npm i -g vercel
+   vercel link
+   ```
+
+   This writes `.vercel/project.json` (git-ignored) containing `orgId` and
+   `projectId`.
+
+2. Create a token at <https://vercel.com/account/tokens>.
+
+3. Add three repository secrets under GitHub → Settings → Secrets and
+   variables → Actions:
+
+   | Secret              | Value                                   |
+   | ------------------- | --------------------------------------- |
+   | `VERCEL_TOKEN`      | The token from step 2                   |
+   | `VERCEL_ORG_ID`     | `orgId` from `.vercel/project.json`     |
+   | `VERCEL_PROJECT_ID` | `projectId` from `.vercel/project.json` |
+
+### Manual deploy
+
+```bash
+vercel             # preview deployment
+vercel --prod      # production deployment
+```
